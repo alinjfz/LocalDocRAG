@@ -77,7 +77,7 @@ def mock_db() -> AsyncMock:
     db.add = MagicMock()
     db.commit = AsyncMock()
     db.rollback = AsyncMock()
-    db.execute = AsyncMock()
+    db.execute = AsyncMock(return_value=MagicMock())
     return db
 
 
@@ -154,7 +154,7 @@ def sample_pdf_bytes() -> bytes:
         0,
         10,
         (
-            "LocalDocRAG Test Document — Page One\n\n"
+            "LocalDocRAG Test Document -- Page One\n\n"
             "This document is used for automated testing of the LocalDocRAG RAG pipeline. "
             "It contains sample text about artificial intelligence and machine learning. "
             "Retrieval Augmented Generation (RAG) is a technique that combines vector "
