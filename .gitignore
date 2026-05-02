@@ -1,0 +1,31 @@
+# Secrets / local config
+.env
+
+# Planning docs
+docmind-plan.md
+front-plan.md
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+
+# Docker volumes / data
+postgres_data/
+ollama_data/
+
+# OS
+.DS_Store
+Thumbs.db

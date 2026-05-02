@@ -1,0 +1,114 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# LocalDocRAG — Full Stack Docker Compose
+#
+# Usage:
+#   Local / Cloud API mode:  docker-compose up --build
+#   With local Ollama:       docker-compose --profile ollama up --build
+#
+# Access (after startup):
+#   https://localhost         — Web UI
+#   https://192.168.x.x      — From other devices on your home network
+#   https://localdocrag.local    — If mDNS is configured on your Pi
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── PostgreSQL with pgvector ──────────────────────────────────────────────
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB:       localdocrag
+      POSTGRES_USER:     localdocrag_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-localdocrag_secret_change_me}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+    networks:
+      - internal
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U localdocrag_user -d localdocrag"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ── FastAPI Backend ───────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      # Override DATABASE_URL to use the internal db hostname
+      DATABASE_URL: postgresql+psycopg://localdocrag_user:${DB_PASSWORD:-localdocrag_secret_change_me}@db:5432/localdocrag
+    volumes:
+      - ./backend:/app   # Hot reload in development
+    networks:
+      - internal
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    # Remove --reload for production Pi deployment
+
+  # ── React Frontend (built, served by nginx) ───────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    networks:
+      - internal
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # ── nginx: SSL termination + reverse proxy ────────────────────────────────
+  # Only service that exposes ports to the host / home network
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"     # HTTP → redirects to HTTPS
+      - "443:443"   # HTTPS — accessible from all devices on your network
+    networks:
+      - internal
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
+
+  # ── Ollama (local LLM) — optional, activate with --profile ollama ─────────
+  # Pi 5 16GB: set OLLAMA_LLM_MODEL=qwen2.5:14b in .env for best quality
+  # Pi 4 8GB:  set OLLAMA_LLM_MODEL=llama3.2:3b
+  # Pi 4 4GB:  set OLLAMA_LLM_MODEL=phi3:mini
+  #
+  # First run: docker-compose --profile ollama exec ollama ollama pull nomic-embed-text
+  #            docker-compose --profile ollama exec ollama ollama pull qwen2.5:14b
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - internal
+    profiles:
+      - ollama
+    restart: unless-stopped
+    # ── GPU passthrough (Raspberry Pi 5 with GPU compute) ────────────────────
+    # Uncomment if your Pi has a compatible GPU or NPU:
+    # devices:
+    #   - /dev/dri:/dev/dri
+
+networks:
+  internal:
+    driver: bridge
+    # All services communicate on this private network.
+    # Only nginx exposes ports to the host.
+
+volumes:
+  postgres_data:
+    # Persists your database across container restarts
+  ollama_data:
+    # Persists downloaded models (can be many GB — store on external SSD on Pi)
