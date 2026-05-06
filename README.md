@@ -417,7 +417,7 @@ cd /home/pi/docmind && docker-compose --profile ollama up -d
 | `OLLAMA_LLM_MODEL`    | `qwen2.5:14b`              | Chat model name                            |
 | `OLLAMA_EMBED_MODEL`  | `nomic-embed-text`         | Embedding model name                       |
 | `DATABASE_URL`        | postgresql+psycopg://…     | Async psycopg3 URL                         |
-| `DB_PASSWORD`         | `localdocrag_secret_change_me` | PostgreSQL password                        |
+| `DB_PASSWORD`         | `localdocrag_secret_change_me` | PostgreSQL password                    |
 | `CHUNK_SIZE`          | `800`                      | Token target per chunk                     |
 | `CHUNK_OVERLAP`       | `150`                      | Overlap between chunks                     |
 | `TOP_K_RETRIEVAL`     | `5`                        | Number of chunks to retrieve               |
