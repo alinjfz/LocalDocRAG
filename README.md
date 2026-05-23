@@ -1,4 +1,4 @@
-# LocalDocRAG — RAG Document Intelligence System
+# LocalDocRAG — a Local RAG Document Intelligence System
 
 > Upload PDFs. Ask questions. Get grounded, page-cited answers. Runs 100% locally on a Raspberry Pi, no cloud required.
 
